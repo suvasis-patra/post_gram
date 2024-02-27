@@ -27,9 +27,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
-  posts: [],
-  liked: [],
-  saved: [],
+  posts: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
+  liked: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
+  saved: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
 });
 
 export const User = mongoose.model("User", userSchema);
