@@ -1,6 +1,14 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
-const postSchema = new mongoose.Schema(
+interface PostDocument extends Document {
+  imageUrl: string;
+  caption: string;
+  likes: number;
+  tags: string[];
+  creator: mongoose.Types.ObjectId;
+}
+
+const postSchema = new mongoose.Schema<PostDocument>(
   {
     imageUrl: {
       type: String,
@@ -23,4 +31,4 @@ const postSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export const Post = mongoose.model("Post", postSchema);
+export const Post = mongoose.model<PostDocument>("Post", postSchema);
