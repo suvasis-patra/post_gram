@@ -1,13 +1,16 @@
 import { User } from "../model/user.model";
 import { ApiError } from "../utils/apiError";
 import { ApiResponse } from "../utils/apiResponse";
+import { Tokens } from "../utils/types";
 import {
   validateUserLogin,
   validateUserRegistration,
 } from "../utils/validation";
 import { Request, Response } from "express";
 
-const generateAccessAndRefreshToken = async (userId: string) => {
+const generateAccessAndRefreshToken = async (
+  userId: string
+): Promise<Tokens | undefined> => {
   try {
     const user = await User.findById(userId);
     if (!user) throw new ApiError(400, "user not found");
@@ -51,12 +54,8 @@ const loginUser = async (req: Request, res: Response) => {
     if (!findUser) throw new ApiError(401, "User does not exist");
     const isPasswordCorrect = await findUser.isPasswordCorrect(password);
     if (!isPasswordCorrect) throw new ApiError(411, "incorrect password");
-    const tokens = (await generateAccessAndRefreshToken(findUser._id)) as
-      | { accessToken: string; refreshToken: string }
-      | undefined;
-    if (!tokens || !tokens.accessToken || !tokens.refreshToken) {
-      throw new ApiError(500, "Failed to generate tokens");
-    }
+    const tokens = await generateAccessAndRefreshToken(findUser._id);
+    if (!tokens) throw new ApiError(500, "Failed to generate tokens");
     const { accessToken, refreshToken } = tokens;
     const loggedInUser = await User.findById(findUser._id).select(
       "-password -refreshToken"
