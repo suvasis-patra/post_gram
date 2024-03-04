@@ -26,6 +26,7 @@ const postSchema = new mongoose.Schema<PostDocument>(
     creator: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
   },
   { timestamps: true }

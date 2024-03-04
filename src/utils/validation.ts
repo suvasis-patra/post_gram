@@ -17,3 +17,8 @@ export const validateUserLogin = zod.object({
     .min(8, "Password is too weak, Atleast have 8 charecters")
     .max(32),
 });
+
+export const validatePost = zod.object({
+  caption: zod.string().min(2),
+  tags: zod.array(zod.string()),
+});
