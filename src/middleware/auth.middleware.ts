@@ -4,7 +4,9 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { User } from "../model/user.model";
 const userAuth = async (req: Request, _: Response, next: NextFunction) => {
   const token =
-    req.cookies || req.header("Authorization")?.replace("Bearer ", "");
+    req.cookies?.accessToken ||
+    req.header("Authorization")?.replace("Bearer ", "");
+  // console.log("token is:", token);
   if (!token) throw new ApiError(401, "Unauthorized request");
   const decodeToken = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
   try {

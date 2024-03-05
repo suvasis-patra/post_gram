@@ -82,8 +82,8 @@ const loginUser = async (req: Request, res: Response) => {
 };
 
 const getCurrentUser = async (req: Request, res: Response) => {
-  const userId = req.headers["userId"];
-  console.log(userId);
+  const userId = req.headers["userid"];
+  console.log(userId, req.headers);
   if (!userId) throw new ApiError(400, "Access denied");
   try {
     const user = await User.findById(userId);
@@ -95,7 +95,8 @@ const getCurrentUser = async (req: Request, res: Response) => {
 };
 
 const logoutUser = async (req: Request, res: Response) => {
-  const userId = req.headers["userId"];
+  const userId = req.headers["userid"];
+  // console.log(req.headers, userId);
   if (!userId) throw new ApiError(400, "Access denied");
   try {
     await User.findByIdAndUpdate(
@@ -119,22 +120,31 @@ const logoutUser = async (req: Request, res: Response) => {
 };
 
 const getAllUser = async (_: Request, res: Response) => {
-  const users = await User.find();
-  if (!users) throw new ApiError(500, "failed to access users");
-  return res.status(200).send(new ApiResponse(200, users, "success"));
+  try {
+    const users = await User.find();
+    if (!users) throw new ApiError(500, "failed to access users");
+    return res.status(200).send(new ApiResponse(200, users, "success"));
+  } catch (error) {
+    console.log("something went wrong, failed to get the users", error);
+  }
 };
 
 const updateUsername = async (req: Request, res: Response) => {
-  const userId = req.headers["userId"];
-  const validatePayload = validateUsername.safeParse(req.body);
-  if (!validatePayload.success) throw new ApiError(422, "inappropriate input");
-  const { username } = req.body;
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    { username },
-    { new: true }
-  );
-  if (!updatedUser) throw new ApiError(500, "failed to update username");
+  try {
+    const userId = req.headers["userid"];
+    const validatePayload = validateUsername.safeParse(req.body);
+    if (!validatePayload.success)
+      throw new ApiError(422, "inappropriate input");
+    const { username } = req.body;
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { username },
+      { new: true }
+    );
+    if (!updatedUser) throw new ApiError(500, "failed to update username");
+  } catch (error) {
+    console.log("something went wrong , failed to change username", error);
+  }
 };
 
 export {

@@ -13,6 +13,6 @@ router.route("/register").post(registerUser);
 router.route("/login").post(loginUser);
 
 router.route("/current-user").get(userAuth, getCurrentUser);
-router.route("/logout").post(logoutUser);
+router.route("/logout").post(userAuth, logoutUser);
 
 export default router;
