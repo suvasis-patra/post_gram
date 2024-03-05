@@ -5,6 +5,7 @@ import { Tokens } from "../utils/types";
 import {
   validateUserLogin,
   validateUserRegistration,
+  validateUsername,
 } from "../utils/validation";
 import { Request, Response } from "express";
 
@@ -117,4 +118,30 @@ const logoutUser = async (req: Request, res: Response) => {
   }
 };
 
-export { registerUser, loginUser, getCurrentUser, logoutUser };
+const getAllUser = async (_: Request, res: Response) => {
+  const users = await User.find();
+  if (!users) throw new ApiError(500, "failed to access users");
+  return res.status(200).send(new ApiResponse(200, users, "success"));
+};
+
+const updateUsername = async (req: Request, res: Response) => {
+  const userId = req.headers["userId"];
+  const validatePayload = validateUsername.safeParse(req.body);
+  if (!validatePayload.success) throw new ApiError(422, "inappropriate input");
+  const { username } = req.body;
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { username },
+    { new: true }
+  );
+  if (!updatedUser) throw new ApiError(500, "failed to update username");
+};
+
+export {
+  registerUser,
+  loginUser,
+  getCurrentUser,
+  logoutUser,
+  getAllUser,
+  updateUsername,
+};

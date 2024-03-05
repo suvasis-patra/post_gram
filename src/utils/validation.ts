@@ -22,3 +22,14 @@ export const validatePost = zod.object({
   caption: zod.string().min(2),
   tags: zod.array(zod.string()),
 });
+
+export const validateUsername = zod.object({
+  username: zod.string().min(8, "Username is too short").max(32),
+});
+
+export const validatePassword = zod.object({
+  password: zod
+    .string()
+    .min(8, "Password is too weak, Atleast have 8 charecters")
+    .max(32),
+});
