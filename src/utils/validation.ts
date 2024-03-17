@@ -1,7 +1,7 @@
-import zod from "zod";
+import zod, { ZodSchema } from "zod";
 
 export const validateUserRegistration = zod.object({
-  username: zod.string().min(8, "Username is too short").max(32),
+  username: zod.string().min(2, "Username is too short").max(32),
   name: zod.string().min(2).max(32),
   email: zod.string().email("Enter a valid email"),
   password: zod
@@ -11,7 +11,7 @@ export const validateUserRegistration = zod.object({
 });
 
 export const validateUserLogin = zod.object({
-  username: zod.string().min(8, "Username is too short").max(32),
+  username: zod.string().min(2, "Username is too short").max(32),
   password: zod
     .string()
     .min(8, "Password is too weak, Atleast have 8 charecters")
@@ -20,11 +20,14 @@ export const validateUserLogin = zod.object({
 
 export const validatePost = zod.object({
   caption: zod.string().min(2),
-  tags: zod.array(zod.string()),
+  tag: zod.string(),
 });
 
-export const validateUsername = zod.object({
-  username: zod.string().min(8, "Username is too short").max(32),
+export const validateUserProfile = zod.object({
+  username: zod.string().min(2, "Username is too short").max(32),
+  name: zod.string().min(2).max(32),
+  email: zod.string().email("Enter a valid email"),
+  bio: zod.string().min(2, "too short bio"),
 });
 
 export const validatePassword = zod.object({

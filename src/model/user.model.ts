@@ -9,9 +9,9 @@ export interface UserDocument extends Document {
   password: string;
   bio?: string | null;
   refreshToken?: string;
-  posts: mongoose.Types.ObjectId;
-  liked: mongoose.Types.ObjectId;
-  saved: mongoose.Types.ObjectId;
+  posts: mongoose.Types.ObjectId[];
+  liked: mongoose.Types.ObjectId[];
+  saved: mongoose.Types.ObjectId[];
   imageUrl?: mongoose.Types.ObjectId;
   isPasswordCorrect(password: string): Promise<boolean>;
   generateAccessToken(): string;

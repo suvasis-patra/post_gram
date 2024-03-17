@@ -5,7 +5,7 @@ import { Tokens } from "../utils/types";
 import {
   validateUserLogin,
   validateUserRegistration,
-  validateUsername,
+  validateUserProfile,
 } from "../utils/validation";
 import { Request, Response } from "express";
 
@@ -40,8 +40,11 @@ const registerUser = async (req: Request, res: Response) => {
     return res
       .status(200)
       .send(new ApiResponse(200, user, "user registerd successfully"));
-  } catch (error) {
+  } catch (error: any) {
     console.log("something went wrong,registration failed", error);
+    res
+      .status(error.statusCode || 500)
+      .send(error.message || "Internal Server Error");
   }
 };
 
@@ -82,11 +85,12 @@ const loginUser = async (req: Request, res: Response) => {
 };
 
 const getCurrentUser = async (req: Request, res: Response) => {
-  const userId = req.headers["userid"];
-  console.log(userId, req.headers);
+  const userId = req.headers["userId"];
+  // console.log(userId, req.headers);
   if (!userId) throw new ApiError(400, "Access denied");
   try {
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select("-password -refreshToken");
+
     if (!user) throw new ApiError(401, "user not found");
     return res
       .status(200)
@@ -94,8 +98,20 @@ const getCurrentUser = async (req: Request, res: Response) => {
   } catch (error) {}
 };
 
+const getUserById = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params?.userId;
+    if (!userId) throw new ApiError(400, "failed to find the user");
+    const user = await User.findById(userId).select("-password -refreshToken");
+    if (!user) throw new ApiError(411, "failed to get the user");
+    return res.status(200).send(new ApiResponse(200, user, "user found"));
+  } catch (error) {
+    console.log("something went wrong,failed to find user", error);
+  }
+};
+
 const logoutUser = async (req: Request, res: Response) => {
-  const userId = req.headers["userid"];
+  const userId = req.headers["userId"];
   // console.log(req.headers, userId);
   if (!userId) throw new ApiError(400, "Access denied");
   try {
@@ -129,13 +145,15 @@ const getAllUser = async (_: Request, res: Response) => {
   }
 };
 
-const updateUsername = async (req: Request, res: Response) => {
+const updateUserProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.headers["userid"];
-    const validatePayload = validateUsername.safeParse(req.body);
+    const validatePayload = validateUserProfile.safeParse(req.body);
     if (!validatePayload.success)
       throw new ApiError(422, "inappropriate input");
-    const { username } = req.body;
+    const { username, name, bio, email } = req.body;
+    const user = await User.findById(userId);
+    if (!user) throw new ApiError(411, "access denied");
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { username },
@@ -147,11 +165,182 @@ const updateUsername = async (req: Request, res: Response) => {
   }
 };
 
+const TogglePostSaved = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.body;
+    const userId = req.headers["userId"];
+    // console.log("POSTID:", postId, "USERID:", userId, req.body);
+    const user = await User.findById(userId);
+    if (!user) throw new ApiError(400, "User not found");
+    const isPostSaved = user.saved.includes(postId);
+    if (isPostSaved) {
+      const response = await User.findByIdAndUpdate(
+        userId,
+        {
+          $pull: { saved: postId },
+        },
+        { new: true }
+      ).select("-password -refreshToken -email");
+      return res
+        .status(200)
+        .send(new ApiResponse(200, response, "Post unsaved successfully"));
+    } else {
+      const response = await User.findByIdAndUpdate(
+        userId,
+        {
+          $addToSet: { saved: postId },
+        },
+        { new: true }
+      ).select("-password -refreshToken -email");
+      return res
+        .status(200)
+        .send(new ApiResponse(200, response, "Post saved successfully"));
+    }
+  } catch (error) {
+    console.log("something went wrong,failed to get save posts", error);
+  }
+};
+
+const TogglePostLiked = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.body;
+    const userId = req.headers["userId"];
+    // console.log(postId, userId);
+    const user = await User.findById(userId);
+    if (!user) throw new ApiError(400, "User not found");
+    const isPostLiked = user.liked.includes(postId);
+    if (isPostLiked) {
+      const response = await User.findByIdAndUpdate(
+        userId,
+        {
+          $pull: { liked: postId },
+        },
+        { new: true }
+      ).select("-password -refreshToken -email");
+      return res
+        .status(200)
+        .send(new ApiResponse(200, response, "Post unliked successfully"));
+    } else {
+      const response = await User.findByIdAndUpdate(
+        userId,
+        {
+          $addToSet: { liked: postId },
+        },
+        { new: true }
+      ).select("-password -refreshToken -email");
+      return res
+        .status(200)
+        .send(new ApiResponse(200, response, "Post liked successfully"));
+    }
+  } catch (error) {
+    console.log("something went wrong,failed to get save posts", error);
+  }
+};
+
+const getSavedPosts = async (req: Request, res: Response) => {
+  try {
+    const userId = req.headers["userId"];
+    const findUser = await User.findById(userId);
+    if (!findUser) throw new ApiError(400, "User not found");
+    const user = await findUser.populate("saved");
+    if (!user) throw new ApiError(400, "failed to get saved posts");
+    return res
+      .status(200)
+      .send(
+        new ApiResponse(
+          200,
+          { savedPosts: user.saved },
+          "successfully got saved post"
+        )
+      );
+  } catch (error) {
+    console.log("something went wrong,failed to get saved post", error);
+  }
+};
+const getLikedPosts = async (req: Request, res: Response) => {
+  try {
+    const userId = req.headers["userId"];
+    const findUser = await User.findById(userId);
+    if (!findUser) throw new ApiError(400, "User not found");
+    const user = await findUser.populate("liked");
+    if (!user) throw new ApiError(400, "failed to get saved posts");
+    return res
+      .status(200)
+      .send(
+        new ApiResponse(
+          200,
+          { likedPosts: user.liked },
+          "successfully got saved post"
+        )
+      );
+  } catch (error) {
+    console.log("something went wrong,failed to get saved post", error);
+  }
+};
+
+const getTopCreators = async (req: Request, res: Response) => {
+  try {
+    const topCreators = await User.aggregate([
+      {
+        $unwind: "$posts",
+      },
+      {
+        $group: {
+          _id: "$_id",
+          totalPost: { $sum: 1 },
+          user: { $first: "$$ROOT" },
+        },
+      },
+      {
+        $sort: { totalPosts: -1 },
+      },
+      {
+        $limit: 8,
+      },
+    ]);
+    if (!topCreators) throw new ApiError(400, "failed to get top creator");
+    return res
+      .status(200)
+      .send(new ApiResponse(200, topCreators, "successfully got top creators"));
+  } catch (error) {
+    console.log("something went wrong, failed to get top creators", error);
+  }
+};
+
+const getUsersPosts = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    // console.log(userId);
+    const findUser = await User.findById(userId);
+    if (!findUser) throw new ApiError(400, "user not found");
+    const user = await findUser.populate("posts");
+    if (!user) throw new ApiError(400, "failed to get user posts");
+    return res
+      .status(200)
+      .send(
+        new ApiResponse(
+          200,
+          { userPosts: user.posts },
+          "successfully found users posts"
+        )
+      );
+  } catch (error) {
+    console.log("somethig went wrong,failed to get users post", error);
+  }
+};
+
 export {
   registerUser,
   loginUser,
   getCurrentUser,
   logoutUser,
   getAllUser,
-  updateUsername,
+  TogglePostLiked,
+  TogglePostSaved,
+  getLikedPosts,
+  getSavedPosts,
+  getTopCreators,
+  getUserById,
+  getUsersPosts,
+  updateUserProfile,
 };
